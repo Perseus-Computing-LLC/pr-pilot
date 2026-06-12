@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PR Pilot Demo Video</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    padding: 32px;
+  }
+
+  .scene { display: none; height: 100%; }
+  .scene.active { display: flex; flex-direction: column; }
+
+  /* ── Scene 0: Problem ────────────────── */
+  .problem-scene { justify-content: center; align-items: center; text-align: center; }
+  .problem-scene h1 { font-size: 36px; font-weight: 700; margin-bottom: 16px; color: #f85149; }
+  .problem-scene .stat-line { font-size: 20px; color: #8b949e; margin: 8px 0; }
+  .problem-scene .highlight { color: #58a6ff; }
+
+  /* ── Scene 1: Solution ───────────────── */
+  .solution-scene { justify-content: center; align-items: center; text-align: center; }
+  .solution-scene h1 { font-size: 34px; font-weight: 700; margin-bottom: 12px; }
+  .solution-scene h1 span { color: #58a6ff; }
+  .solution-scene .pipeline { display: flex; gap: 12px; margin: 24px 0; justify-content: center; }
+  .solution-scene .agent-box {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    text-align: center;
+  }
+  .solution-scene .agent-box .num { font-size: 10px; color: #8b949e; }
+  .agent-1 .name { color: #58a6ff; }
+  .agent-2 .name { color: #3fb950; }
+  .agent-3 .name { color: #a371f7; }
+  .agent-4 .name { color: #d29922; }
+  .agent-5 .name { color: #f85149; }
+  .arrow { color: #8b949e; font-size: 16px; align-self: center; }
+
+  /* ── Scene 2: Terminal (PR open + agent run) ─ */
+  .terminal-scene { justify-content: flex-start; }
+  .terminal-title {
+    font-size: 13px;
+    color: #8b949e;
+    border-bottom: 1px solid #30363d;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .terminal-output { flex: 1; overflow: hidden; }
+  .line { margin-bottom: 2px; white-space: pre-wrap; word-break: break-all; }
+  .line.dim { color: #484f58; }
+  .line.info { color: #58a6ff; }
+  .line.success { color: #3fb950; }
+  .line.warn { color: #d29922; }
+  .line.error { color: #f85149; }
+  .line.purple { color: #a371f7; }
+
+  /* ── Scene 3: Review Results ─────────── */
+  .review-scene { justify-content: flex-start; }
+  .review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #30363d;
+  }
+  .decision-badge {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 4px;
+    background: rgba(210, 153, 34, 0.15);
+    color: #d29922;
+  }
+  .finding {
+    background: #161b22;
+    border-left: 3px solid;
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  .finding.critical { border-color: #f85149; background: rgba(248,81,73,0.06); }
+  .finding.high { border-color: #d29922; background: rgba(210,153,34,0.06); }
+  .finding.low { border-color: #58a6ff; background: rgba(88,166,255,0.06); }
+  .finding .sev { font-weight: 700; }
+  .finding .cat { color: #8b949e; margin-left: 8px; }
+
+  /* ── Scene 4: Dashboard ──────────────── */
+  .dashboard-scene { justify-content: flex-start; }
+  .stats-row { display: flex; gap: 16px; margin-bottom: 20px; }
+  .stat-box {
+    flex: 1;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-box .label { font-size: 11px; color: #8b949e; text-transform: uppercase; }
+  .stat-box .value { font-size: 28px; font-weight: 800; margin-top: 4px; }
+  .stat-box .value.blue { color: #58a6ff; }
+  .stat-box .value.green { color: #3fb950; }
+  .stat-box .value.purple { color: #a371f7; }
+
+  .agent-status-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .agent-status {
+    flex: 1;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 12px;
+    text-align: center;
+  }
+  .agent-status.pass { border-color: #3fb950; background: rgba(63,185,80,0.06); }
+  .agent-status.fail { border-color: #f85149; background: rgba(248,81,73,0.06); }
+
+  /* ── Scene 5: Impact ─────────────────── */
+  .impact-scene { justify-content: center; align-items: center; text-align: center; }
+  .impact-scene h1 { font-size: 32px; margin-bottom: 12px; }
+  .impact-scene h1 span { color: #3fb950; }
+  .impact-scene p { font-size: 18px; color: #8b949e; margin-bottom: 8px; max-width: 700px; }
+  .impact-scene .cta { font-size: 20px; color: #58a6ff; margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<!-- Scene 0: Problem (0:00-0:25) -->
+<div class="scene problem-scene active" id="scene-0">
+  <h1>90% of small dev teams skip code review.</h1>
+  <p class="stat-line">They can't afford a dedicated reviewer.</p>
+  <p class="stat-line">So <span class="highlight">bugs ship to production.</span></p>
+  <p class="stat-line"><span class="highlight">Security vulnerabilities</span> go unnoticed.</p>
+  <p class="stat-line">Technical debt piles up.</p>
+  <p style="margin-top:20px;color:#8b949e;font-size:16px;">This isn't a talent problem. It's a resource problem.</p>
+</div>
+
+<!-- Scene 1: Solution (0:25-0:50) -->
+<div class="scene solution-scene" id="scene-1">
+  <h1>PR <span>Pilot</span> — AI-Native Code Review</h1>
+  <p style="font-size:18px;color:#8b949e;margin-bottom:20px;">Five autonomous agents. No humans in the loop.</p>
+  <div class="pipeline">
+    <div class="agent-box agent-1"><div class="num">Agent 1</div><div class="name">Reviewer</div></div>
+    <div class="arrow">→</div>
+    <div class="agent-box agent-2"><div class="num">Agent 2</div><div class="name">Fixer</div></div>
+    <div class="arrow">→</div>
+    <div class="agent-box agent-3"><div class="num">Agent 3</div><div class="name">Tester</div></div>
+    <div class="arrow">→</div>
+    <div class="agent-box agent-4"><div class="num">Agent 4</div><div class="name">Verifier</div></div>
+    <div class="arrow">→</div>
+    <div class="agent-box agent-5"><div class="num">Agent 5</div><div class="name">Escalator</div></div>
+  </div>
+  <p style="font-size:16px;color:#8b949e;">Install the GitHub App. Your PRs review themselves.</p>
+</div>
+
+<!-- Scene 2: Terminal Demo (0:50-1:50) -->
+<div class="scene terminal-scene" id="scene-2">
+  <div class="terminal-title">▸ PR Pilot Agent Chain — PR #42 (test/demo-app)</div>
+  <div class="terminal-output" id="terminal"></div>
+</div>
+
+<!-- Scene 3: Review Results (1:50-2:15) -->
+<div class="scene review-scene" id="scene-3">
+  <div class="review-header">
+    <div>
+      <div style="font-size:16px;font-weight:700;">PR #42 Review Results</div>
+      <div style="font-size:12px;color:#8b949e;">test/demo-app · Chain ID: pr-42-20260612T020159</div>
+    </div>
+    <div class="decision-badge">REQUEST CHANGES</div>
+  </div>
+  <div class="finding critical">
+    <span class="sev">[CRITICAL]</span><span class="cat">security</span>
+    <div style="margin-top:4px;">SQL injection in delete_user — raw f-string in SQL query. Parameterized query required.</div>
+  </div>
+  <div class="finding high">
+    <span class="sev">[HIGH]</span><span class="cat">performance</span>
+    <div style="margin-top:4px;">time.sleep(5) in get_users blocks the server thread. Use async rate limiting instead.</div>
+  </div>
+  <div class="finding low">
+    <span class="sev">[LOW]</span><span class="cat">style</span>
+    <div style="margin-top:4px;">Import statement inside function body. Move to module level per PEP 8.</div>
+  </div>
+  <div style="margin-top:12px;font-size:13px;color:#3fb950;">
+    ✓ Fixer generated 3 patches &nbsp; ✓ Tester wrote 4 tests &nbsp; ✓ Verifier confirmed no regressions<br>
+    ⚠ Escalator: request changes at 95% confidence — tests need minor adjustments
+  </div>
+</div>
+
+<!-- Scene 4: Dashboard (2:15-2:35) -->
+<div class="scene dashboard-scene" id="scene-4">
+  <div style="font-size:16px;font-weight:700;margin-bottom:16px;">Agent Operations Dashboard</div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="label">Reviews</div><div class="value blue">1</div></div>
+    <div class="stat-box"><div class="label">Autonomous</div><div class="value green">100%</div></div>
+    <div class="stat-box"><div class="label">Avg Duration</div><div class="value purple">94s</div></div>
+    <div class="stat-box"><div class="label">Bugs Found</div><div class="value" style="color:#f85149;">3</div></div>
+  </div>
+  <div class="agent-status-row">
+    <div class="agent-status fail">
+      <div style="color:#58a6ff;">Reviewer</div>
+      <div style="font-size:10px;color:#8b949e;">fail · 13.9s</div>
+      <div style="font-size:10px;color:#f85149;">3 findings</div>
+    </div>
+    <div class="agent-status pass">
+      <div style="color:#3fb950;">Fixer</div>
+      <div style="font-size:10px;color:#8b949e;">pass · 28.5s</div>
+      <div style="font-size:10px;color:#3fb950;">3 patches</div>
+    </div>
+    <div class="agent-status pass">
+      <div style="color:#a371f7;">Tester</div>
+      <div style="font-size:10px;color:#8b949e;">pass · 15.9s</div>
+      <div style="font-size:10px;color:#3fb950;">4 tests</div>
+    </div>
+    <div class="agent-status fail">
+      <div style="color:#d29922;">Verifier</div>
+      <div style="font-size:10px;color:#8b949e;">fail · 17.2s</div>
+      <div style="font-size:10px;color:#d29922;">test issues</div>
+    </div>
+    <div class="agent-status pass">
+      <div style="color:#f85149;">Escalator</div>
+      <div style="font-size:10px;color:#8b949e;">escalate · 18.4s</div>
+      <div style="font-size:10px;color:#d29922;">95% conf</div>
+    </div>
+  </div>
+  <div style="font-size:12px;color:#8b949e;text-align:center;margin-top:12px;">
+    Every decision logged. Every agent call traced. 100% auditable.
+  </div>
+</div>
+
+<!-- Scene 5: Impact + CTA (2:35-2:55) -->
+<div class="scene impact-scene" id="scene-5">
+  <h1><span>Enterprise-grade</span> code review for <span>$99/month</span></h1>
+  <p>A 2-person startup now ships with the same rigor as a 100-person engineering org.</p>
+  <p>Five agents. One pipeline. Zero humans in the loop.</p>
+  <p style="margin-top:16px;color:#58a6ff;font-size:18px;">That's AI-native operations.</p>
+  <p class="cta">github.com/tcconnally/pr-pilot</p>
+  <p style="font-size:14px;color:#8b949e;margin-top:8px;">Built for the Gemini XPRIZE · MIT Licensed</p>
+</div>
+
+<script>
+// Terminal output lines from our actual test run
+const TERMINAL_LINES = [
+  { text: '[2026-06-12 02:01:59] chain_started  chain_id=pr-42-20260612T020159 repo=test/demo-app', cls: 'dim' },
+  { text: '', cls: '' },
+  { text: '── Agent 1: REVIEWER ──', cls: 'info' },
+  { text: '  Analyzing PR diff for bugs, security, performance, style...', cls: 'dim' },
+  { text: '  Files changed: app.py (+7, -1)', cls: 'dim' },
+  { text: '  gemini_call  model=gemini-2.5-pro  elapsed=13.87s', cls: 'dim' },
+  { text: '  ✓ agent_completed  status=fail  duration=13.87s', cls: 'warn' },
+  { text: '  → 3 findings: 1 critical, 1 high, 1 low', cls: 'warn' },
+  { text: '', cls: '' },
+  { text: '── Agent 2: FIXER ──', cls: 'success' },
+  { text: '  Generating patches for 3 findings...', cls: 'dim' },
+  { text: '  gemini_call  model=gemini-2.5-pro  elapsed=28.48s', cls: 'dim' },
+  { text: '  ✓ agent_completed  status=pass  duration=28.48s', cls: 'success' },
+  { text: '  → 3 patches generated: 2 replace, 1 delete', cls: 'success' },
+  { text: '  → Critical SQLi: parameterized query', cls: 'success' },
+  { text: '  → High perf: removed blocking sleep', cls: 'success' },
+  { text: '  → Low style: moved import to module level', cls: 'success' },
+  { text: '', cls: '' },
+  { text: '── Agent 3: TESTER ──', cls: 'purple' },
+  { text: '  Detected framework: pytest', cls: 'dim' },
+  { text: '  Generating unit tests for changed code paths...', cls: 'dim' },
+  { text: '  gemini_call  model=gemini-2.5-pro  elapsed=15.94s', cls: 'dim' },
+  { text: '  ✓ agent_completed  status=pass  duration=15.94s', cls: 'purple' },
+  { text: '  → 4 test files generated (test_delete_user, test_get_users, edge cases)', cls: 'purple' },
+  { text: '', cls: '' },
+  { text: '── Agent 4: VERIFIER ──', cls: 'warn' },
+  { text: '  Validating patches and tests for correctness...', cls: 'dim' },
+  { text: '  gemini_call  model=gemini-2.5-pro  elapsed=17.23s', cls: 'dim' },
+  { text: '  ✓ agent_completed  status=fail  duration=17.23s', cls: 'warn' },
+  { text: '  → Tests validate old buggy behavior — needs adjustment', cls: 'warn' },
+  { text: '', cls: '' },
+  { text: '── Agent 5: ESCALATOR ──', cls: 'error' },
+  { text: '  Reviewing all agent outputs for final decision...', cls: 'dim' },
+  { text: '  gemini_call  model=gemini-2.5-pro  elapsed=18.38s', cls: 'dim' },
+  { text: '  ✓ agent_completed  status=escalate  duration=18.38s', cls: 'error' },
+  { text: '', cls: '' },
+  { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls: 'info' },
+  { text: 'chain_complete  chain_id=pr-42-20260612T020159  decision=request_changes', cls: 'info' },
+  { text: 'total_duration=93.9s  autonomous=true', cls: 'success' },
+  { text: '', cls: '' },
+  { text: 'Decision: REQUEST CHANGES (95% confidence)', cls: 'warn' },
+  { text: 'Reasoning: Patches are correct but generated tests need minor fixes.', cls: 'dim' },
+  { text: '3 patches attached. Review posted to PR #42.', cls: 'success' },
+];
+
+let lineIndex = 0;
+const terminal = document.getElementById('terminal');
+
+function typeNextLine() {
+  if (lineIndex < TERMINAL_LINES.length) {
+    const l = TERMINAL_LINES[lineIndex];
+    const div = document.createElement('div');
+    div.className = 'line ' + (l.cls || '');
+    div.textContent = l.text || ' ';
+    terminal.appendChild(div);
+    terminal.scrollTop = terminal.scrollHeight;
+    lineIndex++;
+    setTimeout(typeNextLine, 120);  // 120ms per line ≈ 4.8s total for typing
+  }
+}
+
+// Scene timing (for ~2:40 total video)
+const SCENES = [
+  { id: 'scene-0', start: 0 },           // Problem
+  { id: 'scene-1', start: 18000 },       // Solution at 18s
+  { id: 'scene-2', start: 33000 },       // Terminal at 33s
+  { id: 'scene-3', start: 92000 },       // Results at 1:32
+  { id: 'scene-4', start: 114000 },      // Dashboard at 1:54
+  { id: 'scene-5', start: 140000 },      // Impact at 2:20
+];
+
+function showScene(sceneId) {
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+  document.getElementById(sceneId).classList.add('active');
+}
+
+SCENES.forEach(s => {
+  setTimeout(() => showScene(s.id), s.start);
+});
+
+// Terminal typing: play line-by-line with variable delays
+const LINE_DELAYS = [
+  // Header: quicker
+  300, 100,
+  // Agent 1 (Reviewer): slower — the important one
+  800, 600, 400, 400, 800, 1200,
+  // Agent 2 (Fixer)
+  800, 500, 400, 400, 800, 600, 600, 600,
+  // Agent 3 (Tester)
+  800, 500, 400, 400, 800, 600,
+  // Agent 4 (Verifier)
+  800, 500, 400, 400, 800, 600,
+  // Agent 5 (Escalator)
+  800, 500, 400, 400, 800,
+  // Final summary
+  1200, 800, 800, 1200, 1000, 800, 800,
+];
+
+function typeNextLine() {
+  if (lineIndex < TERMINAL_LINES.length) {
+    const l = TERMINAL_LINES[lineIndex];
+    const div = document.createElement('div');
+    div.className = 'line ' + (l.cls || '');
+    div.textContent = l.text || ' ';
+    terminal.appendChild(div);
+    terminal.scrollTop = terminal.scrollHeight;
+    const delay = LINE_DELAYS[lineIndex] || 400;
+    lineIndex++;
+    setTimeout(typeNextLine, delay);
+  }
+}
+
+// Start terminal typing at scene-2 start
+setTimeout(() => {
+  typeNextLine();
+}, 33500);
+</script>
+</body>
+</html>

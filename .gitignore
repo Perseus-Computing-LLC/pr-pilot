@@ -13,3 +13,7 @@ logs/
 .ruff_cache/
 .coverage
 htmlcov/
+
+demo/*.mp4
+demo/*.webm
+demo/frame_*.png

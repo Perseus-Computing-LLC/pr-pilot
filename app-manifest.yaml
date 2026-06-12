@@ -3,7 +3,8 @@ url: https://tcconnally.github.io/pr-pilot
 hook_attributes:
   url: https://pr-pilot-placeholder.a.run.app/webhook/github
   active: true
-description: AI-native code quality service - 5-agent autonomous PR review pipeline.
+description: >-
+  AI-native code quality service - 5-agent autonomous PR review pipeline.
   Built for the Gemini XPRIZE.
 public: true
 default_permissions:
@@ -14,5 +15,4 @@ default_permissions:
   checks: write
   statuses: read
 default_events:
-- pull_request
-redirect_url: ''
+  - pull_request

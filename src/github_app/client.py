@@ -67,6 +67,8 @@ class GitHubClient:
             "Accept": "application/vnd.github.v3+json",
             "User-Agent": "pr-pilot/0.1.0",
         }
+        # R-1: shared client for connection reuse and consistent retry
+        self._client: httpx.AsyncClient | None = None
 
     async def _request(
         self,
@@ -139,6 +141,99 @@ class GitHubClient:
         Returns:
             Tuple of (diff_text, pr_metadata_dict)
         """
+        client = self._get_client()
+        merged_headers = {**self.headers, **(headers or {})}
+        last_exception: Exception | None = None
+
+        for attempt in range(_MAX_RETRIES + 1):
+            try:
+                resp = await client.request(
+                    method, url, headers=merged_headers, **kwargs
+                )
+                status = resp.status_code
+
+                if status < 400:
+                    return resp
+
+                # Determine retry eligibility
+                should_retry = status in _RETRYABLE_STATUSES
+                if status == 403:
+                    # Check for secondary rate limit (Retry-After header)
+                    retry_after = resp.headers.get("Retry-After") or resp.headers.get(
+                        "retry-after", ""
+                    )
+                    if retry_after:
+                        should_retry = True
+
+                if not should_retry or attempt >= _MAX_RETRIES:
+                    resp.raise_for_status()
+
+                # Respect Retry-After or X-RateLimit-Reset
+                delay = self._retry_delay(resp, attempt)
+                logger.warning(
+                    "GitHub API rate limited",
+                    status=status,
+                    attempt=attempt,
+                    delay=delay,
+                    url=url,
+                )
+                await asyncio.sleep(delay)
+            except httpx.HTTPStatusError:
+                raise
+            except (httpx.ConnectError, httpx.TimeoutException) as e:
+                last_exception = e
+                if attempt < _MAX_RETRIES:
+                    delay = _BASE_DELAY * (2**attempt)
+                    logger.warning(
+                        "GitHub API connection error, retrying",
+                        attempt=attempt,
+                        delay=delay,
+                        error=str(e),
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                raise
+
+        if last_exception:
+            raise last_exception
+        raise RuntimeError("max retries exhausted")
+
+    @staticmethod
+    def _retry_delay(resp: httpx.Response, attempt: int) -> float:
+        """Compute retry delay from response headers or exponential backoff."""
+        # Respect Retry-After header if present
+        retry_after = resp.headers.get("Retry-After") or resp.headers.get(
+            "retry-after", ""
+        )
+        if retry_after:
+            try:
+                return float(retry_after)
+            except ValueError:
+                pass
+
+        # Respect X-RateLimit-Reset if present
+        import time
+
+        reset_ts = resp.headers.get("X-RateLimit-Reset") or resp.headers.get(
+            "x-ratelimit-reset", ""
+        )
+        if reset_ts:
+            try:
+                now = time.time()
+                reset = float(reset_ts)
+                wait = reset - now + 1  # +1s buffer
+                if 0 < wait < 300:
+                    return wait
+            except (ValueError, TypeError):
+                pass
+
+        # Exponential backoff fallback
+        return _BASE_DELAY * (2**attempt)
+
+    async def get_pr_diff(
+        self, owner: str, repo: str, pr_number: int
+    ) -> tuple[str, dict]:
+        """Fetch the raw diff and PR metadata for a pull request."""
         url = f"{self.base_url}/repos/{owner}/{repo}/pulls/{pr_number}"
         resp = await self._request("GET", url)
         pr_data = resp.json()
@@ -150,7 +245,9 @@ class GitHubClient:
         )
         return diff_resp.text, pr_data
 
-    async def get_pr_files(self, owner: str, repo: str, pr_number: int) -> list[dict]:
+    async def get_pr_files(
+        self, owner: str, repo: str, pr_number: int
+    ) -> list[dict]:
         """List all changed files in a PR, following pagination."""
         url = f"{self.base_url}/repos/{owner}/{repo}/pulls/{pr_number}/files"
         files: list[dict] = []
@@ -166,7 +263,9 @@ class GitHubClient:
             page += 1
         return files
 
-    async def get_repo_file_listing(self, owner: str, repo: str, path: str = "") -> list[str]:
+    async def get_repo_file_listing(
+        self, owner: str, repo: str, path: str = ""
+    ) -> list[str]:
         """Get a best-effort listing of files in the repo (for test framework detection).
 
         File listing is best-effort: pagination is not handled, and repos with
@@ -235,7 +334,6 @@ class GitHubClient:
         }
         encoded_jwt = jwt.encode(payload, private_key, algorithm="RS256")
 
-        # Exchange JWT for installation token
         url = f"{self.base_url}/app/installations/{installation_id}/access_tokens"
         resp = await self._request(
             "POST",

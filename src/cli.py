@@ -64,8 +64,14 @@ async def fetch_diff(context: dict) -> str:
         "User-Agent": "pr-pilot/0.1.0",
     }
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(context["diff_url"], headers=headers)
+    owner, repo = GITHUB_REPOSITORY.split("/")
+    pr_number = context["pr_number"]
+
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        resp = await client.get(
+            f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}",
+            headers=headers,
+        )
         resp.raise_for_status()
         return resp.text
 
@@ -139,7 +145,6 @@ def build_review_body(results: dict) -> str:
     fixer = results.get("fixer", {})
     tester = results.get("tester", {})
     verifier = results.get("verifier", {})
-    escalator = results.get("escalator", {})
     decision = results.get("decision", "unknown")
 
     body = [

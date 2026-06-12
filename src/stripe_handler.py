@@ -14,9 +14,9 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
 # Price IDs — create these in Stripe Dashboard after setting up products
 PRICE_IDS = {
-    "starter": os.getenv("STRIPE_PRICE_STARTER", "price_starter_placeholder"),
-    "team": os.getenv("STRIPE_PRICE_TEAM", "price_team_placeholder"),
-    "business": os.getenv("STRIPE_PRICE_BUSINESS", "price_business_placeholder"),
+    "starter": os.getenv("STRIPE_PRICE_STARTER", "price_1ThML6HqM1kZppsZpWMqkdjS"),
+    "team": os.getenv("STRIPE_PRICE_TEAM", "price_1ThML6HqM1kZppsZQO8hjsAd"),
+    "business": os.getenv("STRIPE_PRICE_BUSINESS", "price_1ThML6HqM1kZppsZGHMGN0ev"),
 }
 
 if STRIPE_SECRET_KEY:

@@ -413,30 +413,17 @@
 </footer>
 
 <script>
-// Stripe checkout — calls backend API to create a Checkout session
-async function checkout(plan) {
-  const btn = event.target;
-  btn.textContent = 'Loading...';
-  btn.disabled = true;
-  
-  try {
-    const resp = await fetch('/api/checkout', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ plan })
-    });
-    
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.detail || 'Checkout failed');
-    }
-    
-    const session = await resp.json();
-    window.location.href = session.url;
-  } catch (e) {
-    alert('Checkout not available yet. ' + e.message + '\n\nStripe setup required: create account at stripe.com, set STRIPE_SECRET_KEY env var, create products/prices.');
-    btn.textContent = 'Start free trial';
-    btn.disabled = false;
+// Stripe checkout — Payment Links (no backend required)
+const PAYMENT_LINKS = {
+  starter: 'https://buy.stripe.com/test_cNieVd7fH7FUdRmcj83gk00',
+  team: 'https://buy.stripe.com/test_7sY5kD8jLbWa14Aab03gk01',
+  business: 'https://buy.stripe.com/test_7sY28r7fH4tIbJe6YO3gk02',
+};
+
+function checkout(plan) {
+  const url = PAYMENT_LINKS[plan];
+  if (url) {
+    window.open(url, '_blank');
   }
 }
 </script>

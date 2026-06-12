@@ -47,12 +47,22 @@ class GitHubClient:
             return diff_resp.text, pr_data
 
     async def get_pr_files(self, owner: str, repo: str, pr_number: int) -> list[dict]:
-        """List changed files in a PR."""
+        """List all changed files in a PR, following pagination."""
         url = f"{self.base_url}/repos/{owner}/{repo}/pulls/{pr_number}/files"
+        files: list[dict] = []
         async with httpx.AsyncClient() as client:
-            resp = await client.get(url, headers=self.headers, params={"per_page": 100})
-            resp.raise_for_status()
-            return resp.json()
+            page = 1
+            while True:
+                resp = await client.get(
+                    url, headers=self.headers, params={"per_page": 100, "page": page}
+                )
+                resp.raise_for_status()
+                batch = resp.json()
+                files.extend(batch)
+                if len(batch) < 100:
+                    break
+                page += 1
+        return files
 
     async def get_repo_file_listing(self, owner: str, repo: str, path: str = "") -> list[str]:
         """Get a listing of files in the repo (for test framework detection)."""

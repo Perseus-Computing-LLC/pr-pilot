@@ -7,6 +7,7 @@ import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import stripe
 import structlog
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -106,6 +107,10 @@ async def create_checkout(request: Request) -> JSONResponse:
         return JSONResponse(session)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except stripe.error.StripeError as e:
+        # Do not leak raw Stripe internals to callers.
+        logger.error("stripe_checkout_error", error=str(e))
+        raise HTTPException(status_code=502, detail="Payment provider error")
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 

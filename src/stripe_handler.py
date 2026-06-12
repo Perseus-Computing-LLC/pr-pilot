@@ -12,11 +12,13 @@ logger = structlog.get_logger(__name__)
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
-# Price IDs — create these in Stripe Dashboard after setting up products
+# Price IDs — create these in Stripe Dashboard and set the env vars. No
+# defaults: a real Stripe price id always starts with "price_", and shipping a
+# placeholder default would let invalid checkout sessions be attempted.
 PRICE_IDS = {
-    "starter": os.getenv("STRIPE_PRICE_STARTER", "TEMP_OLD6HqM1kZppsZpWMqkdjS"),
-    "team": os.getenv("STRIPE_PRICE_TEAM", "TEMP_OLD6HqM1kZppsZQO8hjsAd"),
-    "business": os.getenv("STRIPE_PRICE_BUSINESS", "TEMP_OLD6HqM1kZppsZGHMGN0ev"),
+    "starter": os.getenv("STRIPE_PRICE_STARTER", ""),
+    "team": os.getenv("STRIPE_PRICE_TEAM", ""),
+    "business": os.getenv("STRIPE_PRICE_BUSINESS", ""),
 }
 
 if STRIPE_SECRET_KEY:
@@ -37,10 +39,11 @@ def create_checkout_session(plan: str, customer_email: str | None = None) -> dic
         raise RuntimeError("STRIPE_SECRET_KEY not configured")
 
     price_id = PRICE_IDS.get(plan)
-    if not price_id or "placeholder" in price_id:
+    if not price_id or not price_id.startswith("price_"):
         raise ValueError(
-            f"Price ID for '{plan}' not configured. "
-            "Create products in Stripe Dashboard and set STRIPE_PRICE_STARTER/TEAM/BUSINESS env vars."
+            f"Price ID for '{plan}' is not a valid Stripe price id. "
+            "Create products in Stripe Dashboard and set "
+            "STRIPE_PRICE_STARTER/TEAM/BUSINESS to the 'price_...' values."
         )
 
     try:

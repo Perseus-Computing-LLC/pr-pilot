@@ -87,14 +87,22 @@ async def fetch_changed_files(context: dict) -> list[str]:
         "User-Agent": "pr-pilot/0.1.0",
     }
 
+    files: list[str] = []
     async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}/files",
-            headers=headers,
-            params={"per_page": 100},
-        )
-        resp.raise_for_status()
-        return [f["filename"] for f in resp.json()]
+        page = 1
+        while True:
+            resp = await client.get(
+                f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}/files",
+                headers=headers,
+                params={"per_page": 100, "page": page},
+            )
+            resp.raise_for_status()
+            batch = resp.json()
+            files.extend(f["filename"] for f in batch)
+            if len(batch) < 100:
+                break
+            page += 1
+    return files
 
 
 async def post_review(

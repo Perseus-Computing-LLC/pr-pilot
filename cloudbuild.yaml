@@ -42,8 +42,12 @@ steps:
       - 'GEMINI_API_KEY=gemini-api-key:latest'
       - '--set-secrets'
       - 'GITHUB_APP_PRIVATE_KEY=github-app-private-key:latest'
+      # Webhook secret comes from Secret Manager (created by setup.sh), never a
+      # plaintext build substitution. See issue #14.
+      - '--set-secrets'
+      - 'GITHUB_WEBHOOK_SECRET=github-webhook-secret:latest'
       - '--set-env-vars'
-      - 'GITHUB_APP_ID=$_GITHUB_APP_ID,GITHUB_WEBHOOK_SECRET=$_GITHUB_WEBHOOK_SECRET'
+      - 'GITHUB_APP_ID=$_GITHUB_APP_ID'
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/pr-pilot/pr-pilot:$SHORT_SHA'
@@ -51,6 +55,5 @@ images:
 
 substitutions:
   _GITHUB_APP_ID: ''
-  _GITHUB_WEBHOOK_SECRET: ''
 
 timeout: 1200s

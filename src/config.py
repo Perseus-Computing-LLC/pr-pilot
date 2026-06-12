@@ -28,6 +28,17 @@ GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
 HOST: str = os.getenv("HOST", "0.0.0.0")
 PORT: int = int(os.getenv("PORT", "8080"))
 
+# ── Dashboard ───────────────────────────────────────────────────────
+# The dashboard exposes review session state (repo names, findings, patches).
+# It is disabled unless an admin token is configured; when set, callers must
+# present it as `Authorization: Bearer <token>`.
+DASHBOARD_TOKEN: str = os.getenv("DASHBOARD_TOKEN", "")
+# Comma-separated CORS allowlist for browser clients. Defaults to none (no
+# cross-origin access); set explicit origins in production. Avoid "*".
+CORS_ALLOW_ORIGINS: list[str] = [
+    o.strip() for o in os.getenv("CORS_ALLOW_ORIGINS", "").split(",") if o.strip()
+]
+
 # ── Agent Settings ──────────────────────────────────────────────────
 MAX_AGENT_RETRIES: int = int(os.getenv("MAX_AGENT_RETRIES", "3"))
 AGENT_TIMEOUT_SECONDS: int = int(os.getenv("AGENT_TIMEOUT_SECONDS", "300"))

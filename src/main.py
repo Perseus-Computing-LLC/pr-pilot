@@ -3,17 +3,24 @@ PR Pilot - Main FastAPI application entrypoint.
 Receives GitHub webhooks and triggers the 5-agent review chain.
 """
 
+import hmac
 import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import stripe
 import structlog
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from src.config import HOST, PORT, STATE_DIR
+from src.config import (
+    CORS_ALLOW_ORIGINS,
+    DASHBOARD_TOKEN,
+    HOST,
+    PORT,
+    STATE_DIR,
+)
 from src.github_app.webhook import router as webhook_router
 from src import stripe_handler
 
@@ -37,12 +44,27 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=CORS_ALLOW_ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(webhook_router)
+
+
+def require_dashboard_auth(authorization: str = Header(default="")) -> None:
+    """Guard dashboard routes.
+
+    The dashboard exposes sensitive review state, so it is disabled (404) unless
+    DASHBOARD_TOKEN is configured. When configured, a matching bearer token is
+    required. 404 (not 401) is used when disabled so the routes are not even
+    advertised in an unconfigured deployment.
+    """
+    if not DASHBOARD_TOKEN:
+        raise HTTPException(status_code=404, detail="Not found")
+    expected = f"Bearer {DASHBOARD_TOKEN}"
+    if not authorization or not hmac.compare_digest(authorization, expected):
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 @app.get("/")
@@ -68,7 +90,7 @@ DASHBOARD_HTML = Path(__file__).parent / "dashboard.html"
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard():
+async def dashboard(_: None = Depends(require_dashboard_auth)):
     """Serve the agent audit dashboard."""
     if DASHBOARD_HTML.exists():
         return DASHBOARD_HTML.read_text()
@@ -76,7 +98,7 @@ async def dashboard():
 
 
 @app.get("/dashboard/reviews")
-async def dashboard_reviews():
+async def dashboard_reviews(_: None = Depends(require_dashboard_auth)):
     """API: list all review sessions from the state directory."""
     reviews = []
     if STATE_DIR.exists():

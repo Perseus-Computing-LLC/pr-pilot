@@ -219,6 +219,31 @@ async def _process_pr_review(
         review_body = build_review_body(results)
         review_comments = []
 
+    # R-3: filter inline comments to only those with valid path+line
+    # in the actual diff. A single hallucinated path/line 422s the
+    # entire review submission, losing all inline comments.
+    if review_comments and diff_text:
+        valid_comments = []
+        for c in review_comments:
+            c_path = c.get("path", "")
+            c_line = c.get("line", 0)
+            if c_path in changed_files and isinstance(c_line, int) and c_line > 0:
+                valid_comments.append(c)
+            else:
+                logger.warning(
+                    "dropping_invalid_comment",
+                    path=c_path,
+                    line=c_line,
+                    reason="path not in changed_files" if c_path not in changed_files else "invalid line",
+                )
+        if len(valid_comments) < len(review_comments):
+            logger.info(
+                "filtered_review_comments",
+                original=len(review_comments),
+                valid=len(valid_comments),
+            )
+        review_comments = valid_comments
+
     raw_event = decision_to_github_event(decision)
     github_event = apply_safety_gate(raw_event)
     review_body = build_review_body_with_safety_note(results, original_event=raw_event)

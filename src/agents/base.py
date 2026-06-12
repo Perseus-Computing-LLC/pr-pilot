@@ -128,7 +128,7 @@ class BaseAgent(ABC):
         else:
             model = self.model  # cached from the lazy property
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         response = await asyncio.wait_for(
             loop.run_in_executor(None, model.generate_content, prompt),
             timeout=AGENT_TIMEOUT_SECONDS,

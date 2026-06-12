@@ -79,6 +79,23 @@ class AgentChain:
         results["reviewer"] = self._serialize_result(reviewer_result)
         logger.info("agent_done", agent="reviewer", status=reviewer_result.status)
 
+        # R-2: short-circuit if the reviewer failed — a review built
+        # from failed agents is a false negative worse than no review.
+        if reviewer_result.status == "error":
+            logger.error(
+                "chain_aborted", chain_id=chain_id, reason="reviewer_error"
+            )
+            results["error"] = True
+            results["error_reason"] = "Reviewer agent failed — pipeline aborted."
+            results["decision"] = "escalate_to_human"
+            results["escalator"] = {
+                "decision": "escalate_to_human",
+                "summary": "Automated review pipeline failed. The reviewer agent encountered an error and was unable to analyze this PR. A human should review it manually.",
+            }
+            results["finished_at"] = datetime.now(timezone.utc).isoformat()
+            self._persist_results(chain_id, results)
+            return results
+
         # ── Agent 2: Fixer ────────────────────────────────────────
         fixer_context = {
             **pr_context,

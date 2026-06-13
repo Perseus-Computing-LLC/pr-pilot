@@ -109,12 +109,14 @@ Output your review as structured JSON."""
             response = await self._call_gemini(prompt, REVIEW_SCHEMA)
             review = json.loads(response)
         except (json.JSONDecodeError, RuntimeError) as exc:
-            # Fallback: return error result
+            metadata: dict[str, Any] = {"error": str(exc)}
+            if "response" in locals():
+                metadata["raw_response"] = str(response)
             return AgentResult(
                 agent_name=self.name,
                 status="error",
                 summary=f"Reviewer failed to produce valid review: {exc}",
-                metadata={"error": str(exc), "raw_response": str(response) if "response" in dir() else ""},
+                metadata=metadata,
             )
 
         return AgentResult(

@@ -98,6 +98,8 @@ Generate the review body and any inline comments."""
                 metadata={"error": str(exc), "decision_fallback": "escalate_to_human"},
             )
 
+        confidence = result.get("confidence", 0)
+
         return AgentResult(
             agent_name=self.name,
             status=(
@@ -107,11 +109,11 @@ Generate the review body and any inline comments."""
                 if result.get("decision") == "request_changes"
                 else "escalated"
             ),
-            summary=f"Decision: {result.get('decision')} (confidence: {result.get('confidence', 0):.0%})",
+            summary=f"Decision: {result.get('decision')} (confidence: {max(min(confidence, 1.0), 0.0):.0%})",
             findings=[
                 {
                     "decision": result.get("decision"),
-                    "confidence": result.get("confidence"),
+                    "confidence": confidence,
                     "reasoning": result.get("reasoning"),
                     "review_body": result.get("review_body"),
                     "review_comments": result.get("review_comments", []),
@@ -119,6 +121,6 @@ Generate the review body and any inline comments."""
             ],
             metadata={
                 "decision": result.get("decision"),
-                "confidence": result.get("confidence", 0),
+                "confidence": confidence,
             },
         )

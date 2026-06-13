@@ -84,9 +84,11 @@ class FixerAgent(BaseAgent):
                 summary="No findings to fix — nothing to do.",
             )
 
-        # Limit: only try to fix findings that are fixable
-        fixable = [f for f in findings if f.get("severity") not in ("escalate",)]
-        escalated_by_reviewer = [f for f in findings if f.get("severity") == "escalate"]
+        # Fix all findings. The Reviewer's status of "escalate" on individual
+        # findings means they were too complex; the Fixer still attempts them
+        # but may add them to the "escalated" list if the fix is too risky.
+        fixable = findings
+        escalated_by_reviewer = [f for f in findings if f.get("status") == "escalate"]
 
         if not fixable:
             return AgentResult(

@@ -67,8 +67,11 @@ class VerifierAgent(BaseAgent):
                 summary="Nothing to verify — no patches or tests generated.",
             )
 
-        patches_json = json.dumps(patches, indent=2) if patches else "None"
-        tests_json = json.dumps(test_files, indent=2) if test_files else "None"
+        # Limit serialized patch/test size to avoid sending corrupted JSON to Gemini.
+        # Truncate the lists before serialization so the JSON structure stays valid.
+        MAX_VERIFIER_ITEMS = 20
+        serialized_patches = json.dumps(patches[:MAX_VERIFIER_ITEMS], indent=2) if patches else "None"
+        serialized_tests = json.dumps(test_files[:MAX_VERIFIER_ITEMS], indent=2) if test_files else "None"
 
         prompt = f"""Verify these generated patches and tests for correctness.
 
@@ -79,12 +82,12 @@ ORIGINAL FINDINGS (what was fixed):
 
 GENERATED PATCHES:
 ```json
-{patches_json[:30000]}
+{serialized_patches}
 ```
 
 GENERATED TESTS:
 ```json
-{tests_json[:30000]}
+{serialized_tests}
 ```
 
 Check each patch for:

@@ -60,6 +60,7 @@ FastAPI webhook → AgentChain orchestration → Gemini API → GitHub comment/p
 - **Cloud Run deployable** — one `gcloud run deploy` command, zero-downtime, auto-scaling
 - **Full audit trail** — every agent's reasoning, every fix generated, every decision logged to `data/reviews/`. Structured JSON for compliance and transparency.
 - **GitHub App integration** — webhook receiver, PR API client, review comment posting
+- **Agent operations dashboard** — real-time review status UI at `/dashboard`. Disabled by default; enable with `DASHBOARD_TOKEN` in your `.env`. See `.env.example` for details.
 
 ## Quick Start
 

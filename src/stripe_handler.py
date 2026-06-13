@@ -4,6 +4,7 @@ Stripe integration for PR Pilot — checkout sessions and webhook handling.
 
 import os
 import structlog
+import uuid
 
 import stripe
 
@@ -58,6 +59,7 @@ def create_checkout_session(plan: str, customer_email: str | None = None) -> dic
             allow_promotion_codes=True,
             billing_address_collection="auto",
             metadata={"plan": plan},
+            idempotency_key=str(uuid.uuid4()),
         )
         logger.info("checkout_session_created", plan=plan, session_id=session.id)
         return {"url": session.url, "session_id": session.id}

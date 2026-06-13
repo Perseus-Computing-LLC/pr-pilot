@@ -42,6 +42,10 @@ CORS_ALLOW_ORIGINS: list[str] = [
 # ── Agent Settings ──────────────────────────────────────────────────
 MAX_AGENT_RETRIES: int = int(os.getenv("MAX_AGENT_RETRIES", "3"))
 AGENT_TIMEOUT_SECONDS: int = int(os.getenv("AGENT_TIMEOUT_SECONDS", "300"))
+# Overall timeout for the full 5-agent chain (seconds). The individual
+# agent timeouts can stack up, so the chain timeout acts as a global
+# upper bound on webhook-triggered background tasks. 0 = disabled.
+CHAIN_TIMEOUT_SECONDS: int = int(os.getenv("CHAIN_TIMEOUT_SECONDS", "900"))
 MAX_DIFF_SIZE_BYTES: int = int(os.getenv("MAX_DIFF_SIZE_BYTES", "500_000"))
 # Warn when an accumulated agent prompt exceeds this byte count (the
 # Escalator receives all four prior agent results and a large set of

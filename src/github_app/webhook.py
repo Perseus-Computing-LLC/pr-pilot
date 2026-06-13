@@ -5,6 +5,7 @@ Receives PR events, triggers the agent chain, and posts results back to GitHub.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 from typing import Any
@@ -17,6 +18,7 @@ from src.github_app.client import GitHubClient
 from src.github_app.idempotency import build_delivery_key, default_store
 from src.config import (
     ALLOW_UNSIGNED_WEBHOOKS,
+    CHAIN_TIMEOUT_SECONDS,
     GITHUB_WEBHOOK_SECRET,
     GITHUB_APP_ID,
     GITHUB_APP_PRIVATE_KEY,
@@ -94,7 +96,7 @@ async def github_webhook(
         logger.info("action_ignored", action=action)
         return {"status": "ignored", "action": action}
 
-    # Extract PR info
+    # Extract and validate PR info before accepting the delivery.
     pr = payload.get("pull_request", {})
     repo = payload.get("repository", {})
     installation = payload.get("installation", {})
@@ -106,9 +108,9 @@ async def github_webhook(
     pr_description = pr.get("body", "") or ""
     head_sha = pr.get("head", {}).get("sha", "")
 
-    if not pr_number or not owner:
-        logger.error("missing_pr_info")
-        return {"status": "error", "detail": "Missing PR number or owner"}
+    if not pr_number or not owner or not head_sha:
+        logger.error("invalid_payload_structure", pr=pr_number, owner=owner, sha=head_sha)
+        return {"status": "error", "detail": "Payload missing required PR fields (number, owner, head.sha)"}
 
     # Idempotency: collapse redeliveries and repeated synchronize events for the
     # same head commit so we do not run the chain or post a review twice.
@@ -203,9 +205,38 @@ async def _process_pr_review(
         "project_rules": "",  # Could be loaded from .pr-pilot/config.yaml in the repo
     }
 
-    # Run the agent chain
+    # Run the agent chain with an overall timeout to prevent hanging
+    # background tasks from consuming Cloud Run resources indefinitely.
     chain = AgentChain()
-    results = await chain.run(pr_context)
+    try:
+        if CHAIN_TIMEOUT_SECONDS > 0:
+            results = await asyncio.wait_for(
+                chain.run(pr_context), timeout=CHAIN_TIMEOUT_SECONDS
+            )
+        else:
+            results = await chain.run(pr_context)
+    except asyncio.TimeoutError:
+        logger.error("chain_timeout", pr=pr_number, timeout=CHAIN_TIMEOUT_SECONDS)
+        try:
+            await gh_client.post_comment(
+                owner, repo_name.split("/")[-1], pr_number,
+                f"## PR Pilot\\n\\nThe agent chain timed out after {CHAIN_TIMEOUT_SECONDS}s. "
+                "Escalating to human review."
+            )
+        except Exception:
+            pass
+        return {"status": "timeout", "detail": f"Chain exceeded {CHAIN_TIMEOUT_SECONDS}s timeout"}
+    except Exception as exc:
+        logger.error("chain_unhandled_error", pr=pr_number, error=str(exc))
+        try:
+            await gh_client.post_comment(
+                owner, repo_name.split("/")[-1], pr_number,
+                "## PR Pilot\\n\\nAn unexpected error occurred during automated review. "
+                "Escalating to human review."
+            )
+        except Exception:
+            pass
+        return {"status": "error", "detail": str(exc)}
 
     # If an agent errored, the chain aborted — say so honestly instead of
     # posting a review that implies the PR was analyzed and found clean.

@@ -103,16 +103,16 @@ class BaseAgent(ABC):
 
         import google.generativeai as genai
 
-        genai.configure(api_key=GEMINI_API_KEY)
-
         # Reuse the cached model when no schema is needed; create a fresh one
         # when the schema changes the generation_config (the 0.8.x SDK does not
         # support per-request config overrides on a cached model).
         #
-        # NOTE: In the current agent set every agent passes a schema, so the
-        # cached-model fast-path is not exercised in production. When a future
-        # agent that makes schema‑less calls is added this path will activate
-        # automatically without any code changes.
+        # The API key is configured once in the model property (lazy-init). The
+        # per-call import is a no-op when the module is already loaded.
+        #
+        # NOTE: All five current agents pass a schema, so the cached-model
+        # fast-path below is not exercised in production. It exists for future
+        # agents that may make schema-less calls (e.g. a quick pre-filter).
         if schema:
             generation_config = {
                 "temperature": 0.2,

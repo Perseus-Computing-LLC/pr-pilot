@@ -61,52 +61,46 @@ def get_pr_context() -> dict:
     }
 
 
-async def fetch_diff(context: dict) -> str:
+async def fetch_diff(context: dict, client: httpx.AsyncClient) -> str:
     """Fetch the PR diff from GitHub API."""
-    headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3.diff",
-        "User-Agent": "pr-pilot/0.1.0",
-    }
-
     owner, repo = GITHUB_REPOSITORY.split("/")
     pr_number = context["pr_number"]
 
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        resp = await client.get(
-            f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}",
-            headers=headers,
-        )
-        resp.raise_for_status()
-        return resp.text
+    resp = await client.get(
+        f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}",
+        headers={
+            "Authorization": f"Bearer {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3.diff",
+            "User-Agent": "pr-pilot/0.1.0",
+        },
+    )
+    resp.raise_for_status()
+    return resp.text
 
 
-async def fetch_changed_files(context: dict) -> list[str]:
+async def fetch_changed_files(context: dict, client: httpx.AsyncClient) -> list[str]:
     """Fetch list of changed files."""
     owner, repo = GITHUB_REPOSITORY.split("/")
     pr_number = context["pr_number"]
 
-    headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "pr-pilot/0.1.0",
-    }
-
     files: list[str] = []
-    async with httpx.AsyncClient() as client:
-        page = 1
-        while True:
-            resp = await client.get(
-                f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}/files",
-                headers=headers,
-                params={"per_page": 100, "page": page},
-            )
-            resp.raise_for_status()
-            batch = resp.json()
-            files.extend(f["filename"] for f in batch)
-            if len(batch) < 100:
-                break
-            page += 1
+    page = 1
+    while True:
+        resp = await client.get(
+            f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}/files",
+            headers={
+                "Authorization": f"Bearer {GITHUB_TOKEN}",
+                "Accept": "application/vnd.github.v3+json",
+                "User-Agent": "pr-pilot/0.1.0",
+            },
+            params={"per_page": 100, "page": page},
+        )
+        resp.raise_for_status()
+        batch = resp.json()
+        files.extend(f["filename"] for f in batch)
+        if len(batch) < 100:
+            break
+        page += 1
     return files
 
 
@@ -115,13 +109,11 @@ async def post_review(
     body: str,
     event: str = "COMMENT",
     comments: list[dict] | None = None,
+    client: httpx.AsyncClient | None = None,
 ) -> None:
     """Post a PR review using GitHub Actions token."""
-    headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "pr-pilot/0.1.0",
-    }
+    if client is None:
+        client = httpx.AsyncClient()
 
     owner, repo = GITHUB_REPOSITORY.split("/")
     pr_number = context["pr_number"]
@@ -133,23 +125,30 @@ async def post_review(
     if comments:
         payload["comments"] = comments
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}/reviews",
-            headers=headers,
-            json=payload,
+    resp = await client.post(
+        f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}/reviews",
+        headers={
+            "Authorization": f"Bearer {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "pr-pilot/0.1.0",
+        },
+        json=payload,
+    )
+    if resp.status_code >= 400:
+        logger.error("review_post_failed", status=resp.status_code, body=resp.text[:500])
+        # Fallback: post a comment
+        comment_resp = await client.post(
+            f"{GITHUB_API_URL}/repos/{owner}/{repo}/issues/{pr_number}/comments",
+            headers={
+                "Authorization": f"Bearer {GITHUB_TOKEN}",
+                "Accept": "application/vnd.github.v3+json",
+                "User-Agent": "pr-pilot/0.1.0",
+            },
+            json={"body": body},
         )
-        if resp.status_code >= 400:
-            logger.error("review_post_failed", status=resp.status_code, body=resp.text[:500])
-            # Fallback: post a comment
-            comment_resp = await client.post(
-                f"{GITHUB_API_URL}/repos/{owner}/{repo}/issues/{pr_number}/comments",
-                headers=headers,
-                json={"body": body},
-            )
-            logger.info("comment_posted", status=comment_resp.status_code)
-        else:
-            logger.info("review_posted", pr=pr_number, review_event=event)
+        logger.info("comment_posted", status=comment_resp.status_code)
+    else:
+        logger.info("review_posted", pr=pr_number, review_event=event)
 
 
 async def main():
@@ -169,35 +168,38 @@ async def main():
     context = get_pr_context()
     logger.info("pr_context", number=context["pr_number"], title=context["pr_title"])
 
-    # Fetch diff and files
-    try:
-        diff_text = await fetch_diff(context)
-        context["diff"] = diff_text
-        logger.info("diff_fetched", size=len(diff_text))
-    except Exception as e:
-        logger.error("diff_fetch_failed", error=str(e))
-        sys.exit(1)
+    # Reuse a single httpx client for all GitHub API calls (connection pooling,
+    # fewer TCP handshakes). The client lifecycle wraps the entire run.
+    async with httpx.AsyncClient(follow_redirects=True) as http_client:
+        # Fetch diff and files
+        try:
+            diff_text = await fetch_diff(context, http_client)
+            context["diff"] = diff_text
+            logger.info("diff_fetched", size=len(diff_text))
+        except Exception as e:
+            logger.error("diff_fetch_failed", error=str(e))
+            sys.exit(1)
 
-    try:
-        changed_files = await fetch_changed_files(context)
-        context["changed_files"] = changed_files
-        logger.info("files_fetched", count=len(changed_files))
-    except Exception:
-        context["changed_files"] = []
+        try:
+            changed_files = await fetch_changed_files(context, http_client)
+            context["changed_files"] = changed_files
+            logger.info("files_fetched", count=len(changed_files))
+        except Exception:
+            context["changed_files"] = []
 
-    # Run the agent chain
-    logger.info("running_agent_chain")
-    chain = AgentChain()
-    results = await chain.run(context)
+        # Run the agent chain
+        logger.info("running_agent_chain")
+        chain = AgentChain()
+        results = await chain.run(context)
 
-    # Build review body and map decision to GitHub event (safety gate applied)
-    decision = results.get("decision", "escalate_to_human")
-    raw_event = decision_to_github_event(decision)
-    github_event = apply_safety_gate(raw_event)
-    review_body = build_review_body_with_safety_note(results, original_event=raw_event)
+        # Build review body and map decision to GitHub event (safety gate applied)
+        decision = results.get("decision", "escalate_to_human")
+        raw_event = decision_to_github_event(decision)
+        github_event = apply_safety_gate(raw_event)
+        review_body = build_review_body_with_safety_note(results, original_event=raw_event)
 
-    # Post review
-    await post_review(context, review_body, github_event)
+        # Post review
+        await post_review(context, review_body, github_event, client=http_client)
 
     logger.info("pr_pilot_complete", decision=decision, event=github_event)
 

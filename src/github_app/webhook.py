@@ -85,7 +85,7 @@ async def github_webhook(
         raise HTTPException(status_code=401, detail="Invalid signature")
 
     payload = await request.json()
-    logger.info("webhook_received", event=x_github_event, action=payload.get("action", ""))
+    logger.info("webhook_received", github_event=x_github_event, action=payload.get("action", ""))
 
     # Only handle PR events
     if x_github_event not in ("pull_request",):
@@ -339,7 +339,7 @@ async def _process_pr_review(
             event=github_event,
             comments=review_comments if review_comments else None,
         )
-        logger.info("review_posted", pr=pr_number, decision=decision, event=github_event)
+        logger.info("review_posted", pr=pr_number, decision=decision, github_event=github_event)
     except Exception as exc:
         logger.error("post_review_error", error=str(exc))
         # Fallback: post a simple comment

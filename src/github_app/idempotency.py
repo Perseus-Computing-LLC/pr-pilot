@@ -13,11 +13,8 @@ this with a shared store (Redis, Firestore, Cloud Tasks dedup).
 
 from __future__ import annotations
 
-import os
 import threading
 from collections import OrderedDict
-from pathlib import Path
-from datetime import datetime, timezone
 
 from src.config import STATE_DIR
 

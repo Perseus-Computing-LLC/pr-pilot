@@ -201,7 +201,7 @@ async def main():
         # Post review
         await post_review(context, review_body, github_event, client=http_client)
 
-    logger.info("pr_pilot_complete", decision=decision, event=github_event)
+    logger.info("pr_pilot_complete", decision=decision, github_event=github_event)
 
     # Set output for workflow
     if "GITHUB_OUTPUT" in os.environ:

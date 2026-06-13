@@ -78,6 +78,25 @@ class AgentChain:
         reviewer_result = await self.reviewer.run(pr_context)
         results["reviewer"] = self._serialize_result(reviewer_result)
         logger.info("agent_done", agent="reviewer", status=reviewer_result.status)
+        if aborted := self._short_circuit(results, "reviewer", reviewer_result):
+            return aborted
+
+        # R-2: short-circuit if the reviewer failed — a review built
+        # from failed agents is a false negative worse than no review.
+        if reviewer_result.status == "error":
+            logger.error(
+                "chain_aborted", chain_id=chain_id, reason="reviewer_error"
+            )
+            results["error"] = True
+            results["error_reason"] = "Reviewer agent failed — pipeline aborted."
+            results["decision"] = "escalate_to_human"
+            results["escalator"] = {
+                "decision": "escalate_to_human",
+                "summary": "Automated review pipeline failed. The reviewer agent encountered an error and was unable to analyze this PR. A human should review it manually.",
+            }
+            results["finished_at"] = datetime.now(timezone.utc).isoformat()
+            self._persist_results(chain_id, results)
+            return results
 
         # ── Agent 2: Fixer ────────────────────────────────────────
         fixer_context = {
@@ -87,6 +106,8 @@ class AgentChain:
         fixer_result = await self.fixer.run(fixer_context)
         results["fixer"] = self._serialize_result(fixer_result)
         logger.info("agent_done", agent="fixer", status=fixer_result.status)
+        if aborted := self._short_circuit(results, "fixer", fixer_result):
+            return aborted
 
         # ── Agent 3: Tester ───────────────────────────────────────
         tester_context = {
@@ -96,6 +117,8 @@ class AgentChain:
         tester_result = await self.tester.run(tester_context)
         results["tester"] = self._serialize_result(tester_result)
         logger.info("agent_done", agent="tester", status=tester_result.status)
+        if aborted := self._short_circuit(results, "tester", tester_result):
+            return aborted
 
         # ── Agent 4: Verifier ─────────────────────────────────────
         verifier_context = {
@@ -107,6 +130,8 @@ class AgentChain:
         verifier_result = await self.verifier.run(verifier_context)
         results["verifier"] = self._serialize_result(verifier_result)
         logger.info("agent_done", agent="verifier", status=verifier_result.status)
+        if aborted := self._short_circuit(results, "verifier", verifier_result):
+            return aborted
 
         # ── Agent 5: Escalator ────────────────────────────────────
         escalator_context = {
@@ -117,6 +142,8 @@ class AgentChain:
         }
         escalator_result = await self.escalator.run(escalator_context)
         results["escalator"] = self._serialize_result(escalator_result)
+        if aborted := self._short_circuit(results, "escalator", escalator_result):
+            return aborted
         logger.info(
             "chain_complete",
             chain_id=chain_id,
@@ -130,6 +157,33 @@ class AgentChain:
         # Persist review state
         self._save_state(chain_id, results)
 
+        return results
+
+    def _short_circuit(
+        self, results: dict[str, Any], agent_name: str, result: AgentResult
+    ) -> dict[str, Any] | None:
+        """Abort the chain when an agent errored, instead of feeding empty
+        output to downstream agents and posting a review that implies the PR
+        was analyzed.
+
+        Returns the finalized results dict if the chain should stop, else None.
+        A status of "error" means the agent itself failed (exception, LLM
+        outage) — distinct from "fail", which is a successful analysis with
+        negative findings.
+        """
+        if result.status != "error":
+            return None
+        logger.error(
+            "chain_aborted",
+            chain_id=results["chain_id"],
+            agent=agent_name,
+            summary=result.summary,
+        )
+        results["pipeline_error"] = {"agent": agent_name, "summary": result.summary}
+        results["decision"] = "escalate_to_human"
+        results["autonomy"] = False
+        results["completed_at"] = datetime.now(timezone.utc).isoformat()
+        self._save_state(results["chain_id"], results)
         return results
 
     def _serialize_result(self, result: AgentResult) -> dict[str, Any]:

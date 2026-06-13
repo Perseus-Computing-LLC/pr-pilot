@@ -1,11 +1,11 @@
-name: PR Pilot
+name: PR Flyer
 url: https://tcconnally.github.io/pr-pilot
 hook_attributes:
   url: https://pr-pilot-placeholder.a.run.app/webhook/github
   active: true
 description: >-
   AI-native code quality service - 5-agent autonomous PR review pipeline.
-  Built for the Gemini XPRIZE.
+  Built for the Gemini XPRIZE. (Product: PR Pilot; GitHub App: PR Flyer)
 public: true
 default_permissions:
   pull_requests: write

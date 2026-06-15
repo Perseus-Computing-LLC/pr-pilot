@@ -46,6 +46,35 @@ class BaseAgent(ABC):
 
     name: str = "base"
 
+    
+    async def _validate_and_retry(self, response_text: str, schema: dict, prompt_fn, context: dict) -> dict:
+        """Validate LLM response against JSON schema. Retry once on failure."""
+        import json as _json
+        try:
+            data = _json.loads(response_text)
+        except _json.JSONDecodeError as e:
+            self.logger.warning("agent_json_parse_failed", error=str(e), agent=self.name)
+            # Retry once with explicit formatting instruction
+            retry_prompt = prompt_fn(context) + "\n\nYour previous response was not valid JSON. Please respond with ONLY the JSON object, no markdown fences, no extra text."
+            retry_response = await self._call_llm(retry_prompt)
+            try:
+                data = _json.loads(retry_response)
+            except _json.JSONDecodeError:
+                self.logger.error("agent_json_retry_failed", agent=self.name)
+                return {"status": "error", "summary": f"Agent {self.name} failed to produce valid JSON after retry", "findings": []}
+        
+        # Validate against schema
+        try:
+            import jsonschema
+            jsonschema.validate(data, schema)
+        except ImportError:
+            self.logger.warning("jsonschema_not_installed", agent=self.name)
+        except jsonschema.ValidationError as e:
+            self.logger.warning("agent_schema_validation_failed", error=str(e), agent=self.name)
+            # Don't block on schema mismatch — log and proceed
+        
+        return data
+
     def __init__(self) -> None:
         self._model = None
         self.model_name = GEMINI_MODEL

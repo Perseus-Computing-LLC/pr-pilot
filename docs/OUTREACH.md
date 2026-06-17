@@ -33,11 +33,11 @@ PR Pilot is an AI-native code quality service. When you open a pull request, fiv
 
 ### X/Twitter (280 chars)
 
-> Small dev teams skip code review because they can't afford it. PR Pilot fixes that — 5 AI agents autonomously review every pull request, find bugs, generate fixes, and write tests. 90%+ autonomous. Install the GitHub App and your PRs review themselves. https://github.com/tcconnally/pr-pilot
+> Small dev teams skip code review because they can't afford it. PR Pilot fixes that — 5 AI agents autonomously review every pull request, find bugs, generate fixes, and write tests. 90%+ autonomous. Install the GitHub App and your PRs review themselves. https://github.com/Perseus-Computing-LLC/pr-pilot
 
 ### X/Twitter — Bug Catch (content marketing angle)
 
-> Just ran PR Pilot against a PR with an SQL injection vulnerability. The pipeline caught it, generated a fix, wrote tests, verified no regressions, and posted the review — in 94 seconds. No human touched it. Five agents. One pipeline. https://github.com/tcconnally/pr-pilot
+> Just ran PR Pilot against a PR with an SQL injection vulnerability. The pipeline caught it, generated a fix, wrote tests, verified no regressions, and posted the review — in 94 seconds. No human touched it. Five agents. One pipeline. https://github.com/Perseus-Computing-LLC/pr-pilot
 
 ### Hacker News (Show HN title)
 
@@ -53,7 +53,7 @@ PR Pilot is an AI-native code quality service. When you open a pull request, fiv
 >
 > Free for open source. $49-199/mo for private repos. 14-day trial.
 >
-> Repo: https://github.com/tcconnally/pr-pilot
+> Repo: https://github.com/Perseus-Computing-LLC/pr-pilot
 
 ### Reddit r/programming
 
@@ -75,11 +75,11 @@ PR Pilot is an AI-native code quality service. When you open a pull request, fiv
 >
 > Tech: FastAPI + Gemini 2.5 Pro + GitHub App API + Cloud Run. Structured JSON output between agents means downstream agents get typed, validated input.
 >
-> Open source (MIT): https://github.com/tcconnally/pr-pilot
+> Open source (MIT): https://github.com/Perseus-Computing-LLC/pr-pilot
 
 ### Discord (dev communities)
 
-> Built PR Pilot — an AI-native code review service where 5 agents autonomously handle every PR. The chain: Reviewer finds bugs → Fixer generates patches → Tester writes tests → Verifier confirms no regressions → Escalator decides to ship or escalate. 90%+ autonomous. Built for the Gemini XPRIZE. Open source. https://github.com/tcconnally/pr-pilot
+> Built PR Pilot — an AI-native code review service where 5 agents autonomously handle every PR. The chain: Reviewer finds bugs → Fixer generates patches → Tester writes tests → Verifier confirms no regressions → Escalator decides to ship or escalate. 90%+ autonomous. Built for the Gemini XPRIZE. Open source. https://github.com/Perseus-Computing-LLC/pr-pilot
 
 ### Indie Hackers
 
@@ -102,7 +102,7 @@ PR Pilot is an AI-native code quality service. When you open a pull request, fiv
 > Tech stack: FastAPI + Gemini 2.5 Pro + GitHub App + Cloud Run
 > Pricing: $49-199/mo with 14-day free trial
 >
-> Open source: https://github.com/tcconnally/pr-pilot
+> Open source: https://github.com/Perseus-Computing-LLC/pr-pilot
 >
 > I'm targeting 20-30 paying customers in 90 days. If you're a small team that skips code review because you can't afford it, try the free trial.
 

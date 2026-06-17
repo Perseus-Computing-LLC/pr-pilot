@@ -80,7 +80,7 @@ def build_review_body(results: dict[str, Any]) -> str:
         f"**Pipeline duration:** ~{total_duration:.1f}s",
         "",
         "---",
-        "*Review by [PR Pilot](https://github.com/tcconnally/pr-pilot) — AI-native code quality service*",
+        "*Review by [PR Pilot](https://github.com/Perseus-Computing-LLC/pr-pilot) — AI-native code quality service*",
     ])
 
     return "\n".join(parts)

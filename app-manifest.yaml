@@ -1,5 +1,5 @@
 name: PR Flyer
-url: https://tcconnally.github.io/pr-pilot
+url: https://perseus-computing-llc.github.io/pr-pilot
 hook_attributes:
   url: https://pr-pilot-placeholder.a.run.app/webhook/github
   active: true

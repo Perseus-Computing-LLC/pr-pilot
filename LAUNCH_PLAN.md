@@ -28,9 +28,9 @@
 
 **Tweet 5 (CTA):**
 > Try the live emulator on the landing page — watch the full 5-agent pipeline run in your browser:
-> https://tcconnally.github.io/pr-pilot/
+> https://perseus-computing-llc.github.io/pr-pilot/
 >
-> GitHub: https://github.com/tcconnally/pr-pilot
+> GitHub: https://github.com/Perseus-Computing-LLC/pr-pilot
 > 14-day free trial. No credit card needed.
 
 ---
@@ -59,7 +59,7 @@ Built with Gemini API (required for the XPRIZE), Cloud Run, and FastAPI.
 
 There's a live emulator on the landing page where you can watch the agent chain process common vulnerabilities (SQL injection, blocking sleep, nested imports):
 
-https://tcconnally.github.io/pr-pilot/
+https://perseus-computing-llc.github.io/pr-pilot/
 
 Happy to answer questions about the architecture, agent decision logic, or anything else.
 
@@ -93,7 +93,7 @@ Focus on the business angle:
 
 > Hey [name] — I built PR Pilot, an AI-native code review service where 5 agents autonomously handle your PR pipeline. Reviewer → Fixer → Tester → Verifier → Escalator. Full pipeline in ~90 seconds.
 >
-> I'm looking for early beta users. Free extended trial in exchange for feedback. Landing page has a live emulator if you want to see it in action: https://tcconnally.github.io/pr-pilot/
+> I'm looking for early beta users. Free extended trial in exchange for feedback. Landing page has a live emulator if you want to see it in action: https://perseus-computing-llc.github.io/pr-pilot/
 >
 > Worth a look?
 

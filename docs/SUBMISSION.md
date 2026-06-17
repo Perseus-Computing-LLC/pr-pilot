@@ -13,7 +13,7 @@
 **Elevator pitch (200 chars max):**
 PR Pilot gives small dev teams enterprise-grade code review — five AI agents autonomously find bugs, generate fixes, write tests, and decide what to ship. Install the GitHub App and your PRs review themselves.
 
-**GitHub Repo:** https://github.com/tcconnally/pr-pilot
+**GitHub Repo:** https://github.com/Perseus-Computing-LLC/pr-pilot
 **Hosted Demo:** https://pr-pilot.dev (or Cloud Run URL)
 **License:** MIT
 
@@ -152,7 +152,7 @@ This isn't AI-assisted code review. It's autonomous code review with human overr
 
 ## Links
 
-- **GitHub Repo:** https://github.com/tcconnally/pr-pilot
+- **GitHub Repo:** https://github.com/Perseus-Computing-LLC/pr-pilot
 - **Landing Page:** https://pr-pilot.dev
 - **Devpost Entry:** https://devpost.com/software/pr-pilot (TBD)
 - **Demo Video:** [YouTube link TBD]

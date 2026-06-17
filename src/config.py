@@ -68,7 +68,7 @@ VERIFIED_AUTO_APPROVE: bool = os.getenv("VERIFIED_AUTO_APPROVE", "").lower() == 
 # ── Stripe ──────────────────────────────────────────────────────────
 # Base URL used for success/cancel redirects after Stripe Checkout.
 STRIPE_BASE_URL: str = os.getenv(
-    "STRIPE_BASE_URL", "https://tcconnally.github.io/pr-pilot"
+    "STRIPE_BASE_URL", "https://perseus-computing-llc.github.io/pr-pilot"
 )
 
 # ── Paths ───────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ function never actually ran — but the duplicate made the file misleading
 and would silently re-activate if anyone ever refactored/renamed the
 working version.
 
-See: https://github.com/tcconnally/pr-pilot/issues/46
+See: https://github.com/Perseus-Computing-LLC/pr-pilot/issues/46
 """
 
 from __future__ import annotations

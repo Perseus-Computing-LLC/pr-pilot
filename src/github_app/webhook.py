@@ -107,6 +107,10 @@ async def github_webhook(
     pr_title = pr.get("title", "")
     pr_description = pr.get("body", "") or ""
     head_sha = pr.get("head", {}).get("sha", "")
+    head_ref = pr.get("head", {}).get("ref", "")
+    # The PR head repo clone URL — this is where the branch lives
+    head_repo = pr.get("head", {}).get("repo", {})
+    repo_clone_url = head_repo.get("clone_url", "")
 
     if not pr_number or not owner or not head_sha:
         logger.error("invalid_payload_structure", pr=pr_number, owner=owner, sha=head_sha)
@@ -131,6 +135,8 @@ async def github_webhook(
         pr_description=pr_description,
         installation=installation,
         dedup_key=dedup_key,
+        head_ref=head_ref,
+        repo_clone_url=repo_clone_url,
     )
     return {"status": "accepted", "pr": pr_number, "key": dedup_key}
 
@@ -144,6 +150,8 @@ async def _process_pr_review(
     pr_description: str,
     installation: dict[str, Any],
     dedup_key: str,
+    head_ref: str = "",
+    repo_clone_url: str = "",
 ) -> dict[str, Any]:
     """Background worker: run the agent chain and post the review to GitHub."""
     # Get installation token for this repo
@@ -203,6 +211,10 @@ async def _process_pr_review(
         "project_files": "\n".join(project_files_list),
         "pr_number": pr_number,
         "project_rules": "",  # Could be loaded from .pr-pilot/config.yaml in the repo
+        # Sandboxed verification (issue #68) — enables real clone/patch/test
+        "github_token": gh_client.token,
+        "repo_clone_url": repo_clone_url,
+        "branch_name": head_ref,
     }
 
     # Run the agent chain with an overall timeout to prevent hanging

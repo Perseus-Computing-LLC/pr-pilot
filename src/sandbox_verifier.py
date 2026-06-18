@@ -6,7 +6,6 @@ producing evidence-backed pass/fail results instead of LLM-only judgment.
 """
 from __future__ import annotations
 
-import json
 import os
 import shutil
 import subprocess
@@ -14,7 +13,6 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import structlog
 
@@ -300,7 +298,7 @@ class SandboxVerifier:
             return {
                 "check_name": f"patch_{index}",
                 "passed": False,
-                "detail": f"patch command not available and no file path specified",
+                "detail": "patch command not available and no file path specified",
             }
         except Exception as exc:
             return {

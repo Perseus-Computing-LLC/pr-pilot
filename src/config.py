@@ -58,11 +58,13 @@ MAX_DIFF_SIZE_BYTES: int = int(os.getenv("MAX_DIFF_SIZE_BYTES", "500_000"))
 MAX_PROMPT_SIZE_WARN_BYTES: int = int(os.getenv("MAX_PROMPT_SIZE_WARN_BYTES", "500_000"))
 
 # ── Review Safety ───────────────────────────────────────────────────
-# The Verifier currently judges generated patches/tests with an LLM only; it
-# does not apply patches, write tests, or run project commands in a sandbox.
-# Until real verification exists, an "auto_approve" decision must NEVER be
-# turned into a GitHub APPROVE. Setting this to true is reserved for when a
-# sandboxed verification worker is implemented and producing real evidence.
+# When SANDBOX_ENABLED=true, the Verifier clones the PR branch, applies
+# generated patches, and runs the project's real test suite in an isolated
+# temp directory. Results are evidence-backed — no LLM guessing.
+# VERIFIED_AUTO_APPROVE gates whether a passing sandbox result authorizes
+# an actual GitHub APPROVE (set to true once sandbox is proven reliable).
+SANDBOX_ENABLED: bool = os.getenv("SANDBOX_ENABLED", "").lower() == "true"
+SANDBOX_TIMEOUT_SECS: int = int(os.getenv("SANDBOX_TIMEOUT_SECS", "300"))
 VERIFIED_AUTO_APPROVE: bool = os.getenv("VERIFIED_AUTO_APPROVE", "").lower() == "true"
 
 # ── Stripe ──────────────────────────────────────────────────────────
